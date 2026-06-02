@@ -24,6 +24,8 @@ __pycache__/
 # Ignore logs
 *.log
 logs/
+# logs/ covered for baseline captures (mcp/06-devops-baseline worker + validator sibling).
+# See scripts/capture-baseline.sh and plan 5.1/5.4. Do not commit raw logs (redacted only in PR notes).
 
 # Ignore OS files
 .DS_Store

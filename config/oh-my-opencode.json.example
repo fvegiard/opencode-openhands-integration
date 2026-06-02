@@ -26,6 +26,11 @@
     "grep_app": {
       "comment": "grep.app MCP for code search across GitHub",
       "enabled": true
+    },
+
+    "git": {
+      "comment": "Git / GitHub MCP support: git-mcp (uvx mcp-server-git) or GitKraken (gk mcp) can be used alongside for local git + some PR/issue ops (27 tools in GitKraken). For authenticated GitHub remote API (branches, issues, PRs on GitHub) from Claude, register the official GitHub MCP via Claude Code side (not here): see .env.example GITHUB_PERSONAL_ACCESS_TOKEN and docs/MCP_ENABLEMENT_PLAN.md for `claude mcp add --transport http github ...`. This opencode config focuses on @openhands delegation; git/github MCPs are additive for the rig.",
+      "enabled": false
     }
   },
   

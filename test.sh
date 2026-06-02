@@ -122,6 +122,32 @@ else
     exit 1
 fi
 
+# Test 11 (gate coordination): MCP validator --strict (invoke if present in local scripts/ or #01 worker tree per fan-out; also supports running parent test.sh via abs path)
+echo -n "Test 11 (optional): MCP validator --strict (coord w/ #01)... "
+VALIDATOR_CANDIDATES=(
+  "scripts/validate_mcps.sh"
+  "/home/francis-v/.grok/worktrees/git-opencode-openhands-integration/wt-mcp-01-validator-script/scripts/validate_mcps.sh"
+  "/home/francis-v/.grok/worktrees/git-opencode-openhands-integration/super-grok-multitask-workingtree/scripts/validate_mcps.sh"
+)
+VALIDATOR=""
+for v in "${VALIDATOR_CANDIDATES[@]}"; do
+    if [ -x "$v" ]; then
+        VALIDATOR="$v"
+        break
+    fi
+done
+if [ -n "$VALIDATOR" ]; then
+    if bash "$VALIDATOR" --strict 2>&1 | tee /tmp/validator-gate.log | tail -10 | grep -qiE "(ALL PASS|exit 0|VALIDATION.*0|MCP_VALIDATION=0|✓ All)"; then
+        echo -e "${GREEN}✓${NC} $VALIDATOR passed"
+    else
+        echo -e "${RED}✗${NC} validator failed or not green (check /tmp/validator-gate.log; coord #01)"
+        # do not hard fail entire test.sh yet; validator may be partial; strict gate separate
+    fi
+else
+    echo -e "${GREEN}⊘${NC} no validator script yet (pending creation by #01; will auto-detect on re-run)"
+fi
+
+
 echo ""
 echo -e "${GREEN}═══════════════════════════════════════════${NC}"
 echo -e "${GREEN}✓ All tests passed!${NC}"

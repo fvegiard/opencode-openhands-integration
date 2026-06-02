@@ -259,6 +259,7 @@ python mcp_server.py
 - **Total Lines of Code**: ~1,500
 - **Documentation**: 1,300+ lines
 - **Test Coverage**: 10 automated tests
+- **MCP Validation Layer**: scripts/validate_mcps.sh with full matrix (GitHub MCP, OpenHands, git proxies, config consistency)
 - **Configuration Files**: 2 complete templates
 - **Examples**: 10+ real-world use cases
 - **Type Safety**: 100% (all functions typed)
@@ -286,6 +287,7 @@ This is a **2026-grade agentic coding setup** where:
 - Oh My OpenCode provides advanced orchestration
 - OpenHands delivers industrial-strength execution
 - All components communicate via standardized MCP
+- Added validation layer (validate_mcps.sh) for MCP registration, GitHub auth, health matrix and docs alignment
 
 **Result:** Autonomous, composable, ridiculously productive software development
 

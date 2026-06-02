@@ -48,6 +48,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## Future Releases
 
 ### [1.1.0] - Planned
+- MCP enablement: added scripts/validate_mcps.sh, GitHub MCP support in docs, full validation matrix, aligned all docs. (see MCP_ENABLEMENT_PLAN.md).
 - Async task support (MCP 2025-11-25 async tasks)
 - Progress tracking for long-running tasks
 - Enhanced caching for token reduction

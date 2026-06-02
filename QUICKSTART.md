@@ -53,6 +53,33 @@ In OpenCode, test the connection:
 
 ---
 
+## MCP Fast Validation Checks
+
+Run these *minimum fast checks* (copy-paste) after "First Test" (use venv for python step):
+
+```bash
+# 1. Claude MCP registry (target: github; also openhands if registered to claude, GitKraken/git proxies)
+claude mcp list | grep -E 'github|openhands|GitKraken'
+```
+
+```bash
+# 2. Direct repo MCP health (activate venv first)
+source .venv/bin/activate
+python -c 'from mcp_server import health_check; print(health_check())'
+```
+
+```bash
+# 3. Full strict validator (will be created by sibling worker in this fan-out)
+bash scripts/validate_mcps.sh --strict
+```
+
+**Notes for copy-paste consistency:**
+- Use full `python -c 'from mcp_server import health_check; print(health_check())'` (grep for "running" internally in validator).
+- `validate_mcps.sh --strict` exits 0 only on green (covers prereqs, .venv, deps, py compile, health, claude mcp presence, GitHub smoke if PAT, config paths).
+- See TROUBLESHOOTING.md "MCP Validation Failures" for exact remediation matching the validator output.
+
+---
+
 ## First Task
 
 ```

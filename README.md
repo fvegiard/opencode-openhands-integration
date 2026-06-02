@@ -196,10 +196,12 @@ Keep this terminal open! OpenCode will connect when needed.
 
 ## ✅ Verify Installation
 
+Use the checks below (or jump to the full "MCP Validation" section below for the one-command `scripts/validate_mcps.sh --strict`).
+
 ### Test MCP Connection
 
+**Via OpenCode + Oh My OpenCode:**
 In OpenCode, run:
-
 ```
 @openhands health_check
 ```
@@ -209,11 +211,81 @@ In OpenCode, run:
 ✓ OpenHands MCP Server is running with OpenHands SDK (v3.0 - June 2026)
 ```
 
+**Via Claude Code (`claude mcp`):**
+```bash
+claude mcp list
+claude mcp get openhands   # if you registered the local one too
+```
+
+**Full validation (recommended):**
+See dedicated "MCP Validation" section below (after this Verify section), which runs `bash scripts/validate_mcps.sh --strict` (covers direct health + claude registry + GitHub if enabled).
+
 ### Test Task Execution
 
 ```
 @openhands execute_task: Create a Python hello world script
 ```
+
+---
+
+## 🧪 MCP Validation
+
+Run the dedicated validator script for a full matrix of checks (prereqs, repo MCP direct health via `health_check`, `claude mcp list` registry, GitHub smoke if configured, OpenCode config consistency, etc.):
+
+```bash
+bash scripts/validate_mcps.sh --strict
+```
+
+Verbose + strict (for CI or full gate):
+```bash
+bash scripts/validate_mcps.sh --verbose --strict
+```
+
+**Prerequisites** (enforced by script): `claude` (Claude Code), `python3 >= 3.12`, `uv`. Optional: `jq`, `gk` (GitKraken), `docker`.
+
+See the complete validation matrix and check details in [docs/MCP_ENABLEMENT_PLAN.md](docs/MCP_ENABLEMENT_PLAN.md) (section 7).
+
+**Copy-paste manual equivalents** (also exercised by the validator):
+
+```bash
+# 1. Repo setup + direct OpenHands MCP health (MOCK is acceptable until ~/openhands-sdk present)
+source .venv/bin/activate || uv venv && source .venv/bin/activate
+uv pip install -r requirements.txt -q
+python -m py_compile mcp_server.py
+python -c "
+from mcp_server import health_check
+h = health_check()
+print(h)
+" | grep -q "running" && echo "✓ direct health OK" || echo "✗ health fail"
+
+# 2. Claude MCP registry
+CLIST=$(claude mcp list 2>&1 || true)
+echo "$CLIST" | grep -qi 'github' || echo "WARN: no 'github' MCP registered"
+echo "$CLIST" | grep -qi 'GitKraken\|git-mcp' || echo "WARN: no git MCP proxy"
+echo "$CLIST"
+
+# 3. (if github registered) GitHub read smoke via claude
+if echo "$CLIST" | grep -qi 'github'; then
+  claude --print --allow-dangerously-skip-permissions "Use the github MCP. List the default branch for repo fvegiard/opencode-openhands-integration. Be terse." 2>&1 | cat
+fi
+```
+
+**GitHub MCP (for authenticated remote GitHub ops in Claude):**
+- Requires a GitHub Personal Access Token (PAT).
+- Create one (fine-grained recommended): https://github.com/settings/personal-access-tokens/new
+- Minimum scopes for this integration: `repo` (Contents: Read & write or Read), `issues` (Read), `pull_requests` (Read).
+- Classic tokens: https://github.com/settings/tokens (select `repo` scope).
+- Register (example; use your PAT):
+  ```bash
+  export GITHUB_PERSONAL_ACCESS_TOKEN=ghp_yourpat...
+  claude mcp add --transport http github https://api.githubcopilot.com/mcp/ --header "Authorization: Bearer $GITHUB_PERSONAL_ACCESS_TOKEN"
+  claude mcp list
+  claude mcp get github
+  ```
+- The validator will warn/skip smoke if no PAT or no "github" entry (GitKraken/git-mcp provide local git fallbacks with many overlapping tools).
+- Remove if needed: `claude mcp remove github`
+
+Run the validator after any MCP registration changes.
 
 ---
 
