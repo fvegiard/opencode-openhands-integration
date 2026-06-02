@@ -6,7 +6,7 @@
 #
 # Usage:
 #   bash scripts/validate_mcps.sh [--verbose] [--strict]
-#   --strict : exit 1 on any FAIL or WARN (for gate/CI)
+#   --strict : exit 1 on any FAIL (for gate/CI)
 #   --verbose: more details + full claude mcp list + smoke payload
 #
 # Outputs human report + timestamped log in logs/ (redacted)
@@ -97,24 +97,49 @@ echo ""
 
 # 2. Repo MCP health (OpenHands local, MOCK OK)
 echo "=== 2. Repo OpenHands MCP (direct) ==="
-if [ ! -d ".venv" ]; then
-  echo "Creating .venv (idempotent)..."
-  uv venv
-fi
-source .venv/bin/activate
-uv pip install -r requirements.txt -q
-pass "deps installed"
+PYTHON_BIN="python3"
 
-if python -m py_compile mcp_server.py 2>/dev/null; then
+if [ ! -d ".venv" ]; then
+  if command -v uv >/dev/null 2>&1; then
+    echo "Creating .venv (idempotent)..."
+    if uv venv; then
+      pass ".venv created"
+    else
+      fail_item "uv venv failed"
+    fi
+  else
+    fail_item ".venv missing and uv unavailable"
+  fi
+fi
+
+if [ -f ".venv/bin/activate" ]; then
+  # shellcheck disable=SC1091
+  source .venv/bin/activate
+  PYTHON_BIN="python"
+else
+  fail_item ".venv/bin/activate missing"
+fi
+
+if command -v uv >/dev/null 2>&1; then
+  if uv pip install -r requirements.txt -q; then
+    pass "deps installed"
+  else
+    fail_item "dependency install failed (uv pip install -r requirements.txt)"
+  fi
+else
+  fail_item "uv unavailable for dependency install"
+fi
+
+if "$PYTHON_BIN" -m py_compile mcp_server.py 2>/dev/null; then
   pass "mcp_server.py syntax OK"
 else
   fail_item "mcp_server.py has syntax errors"
 fi
 
-HEALTH=$(python -c "
+HEALTH=$("$PYTHON_BIN" -c "
 from mcp_server import health_check
 print(health_check())
-" 2>&1)
+" 2>&1 || true)
 if echo "$HEALTH" | grep -q "OpenHands MCP Server is running"; then
   pass "direct health: $HEALTH"
 else
@@ -188,10 +213,10 @@ echo ""
 
 # 6. Config path consistency (example + live if present)
 echo "=== 6. Config path checks ==="
-ABS_MCP=$(python -c "
+ABS_MCP=$(python3 -c "
 import os
 print(os.path.abspath('mcp_server.py'))
-" )
+" 2>/dev/null || echo "mcp_server.py")
 pass "Computed abs path: $ABS_MCP"
 
 if [ -f "config/oh-my-opencode.json.example" ]; then
