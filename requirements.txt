@@ -1,0 +1,18 @@
+# OpenCode-OpenHands Integration Requirements
+# Compatible with Python 3.12+
+
+# MCP Server Framework (FastMCP 3.3.1+)
+fastmcp>=3.3.1
+
+# HTTP client for MCP HTTP transport
+httpx>=0.27.0
+
+# Note: OpenHands SDK should be installed separately:
+# git clone https://github.com/fvegiard/OpenHands.git
+# cd OpenHands && uv pip install -e .
+
+# Optional: Development dependencies
+# pytest>=8.0.0
+# pytest-asyncio>=0.23.0
+# black>=24.0.0
+# ruff>=0.3.0
