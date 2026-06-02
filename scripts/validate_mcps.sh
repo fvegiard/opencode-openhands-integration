@@ -97,7 +97,9 @@ echo ""
 
 # 2. Repo MCP health (OpenHands local, MOCK OK)
 echo "=== 2. Repo OpenHands MCP (direct) ==="
+# Default to system python3; switch to venv "python" shim when activation succeeds.
 PYTHON_BIN="python3"
+MAX_HEALTH_LINES=5
 
 if [ ! -d ".venv" ]; then
   if command -v uv >/dev/null 2>&1; then
@@ -136,11 +138,19 @@ else
   fail_item "mcp_server.py has syntax errors"
 fi
 
-HEALTH=$("$PYTHON_BIN" -c "
+if HEALTH=$("$PYTHON_BIN" -c "
 from mcp_server import health_check
 print(health_check())
-" 2>&1 || true)
-if echo "$HEALTH" | grep -q "OpenHands MCP Server is running"; then
+" 2>&1); then
+  HEALTH_RC=0
+else
+  HEALTH_RC=$?
+fi
+
+if [ "$HEALTH_RC" -ne 0 ]; then
+  HEALTH_SUMMARY=$(echo "$HEALTH" | head -n "$MAX_HEALTH_LINES" | tr '\n' ' ')
+  fail_item "direct health command failed (rc=$HEALTH_RC): $HEALTH_SUMMARY"
+elif echo "$HEALTH" | grep -q "OpenHands MCP Server is running"; then
   pass "direct health: $HEALTH"
 else
   fail_item "direct health failed: $HEALTH"
@@ -213,11 +223,18 @@ echo ""
 
 # 6. Config path consistency (example + live if present)
 echo "=== 6. Config path checks ==="
-ABS_MCP=$(python3 -c "
-import os
-print(os.path.abspath('mcp_server.py'))
-" 2>/dev/null || echo "mcp_server.py")
-pass "Computed abs path: $ABS_MCP"
+get_abs_mcp_path() {
+  local py_bin="${PYTHON_BIN:-python3}"
+  "$py_bin" -c "import os; print(os.path.abspath('mcp_server.py'))" 2>/dev/null \
+    || python3 -c "import os; print(os.path.abspath('mcp_server.py'))" 2>/dev/null
+}
+
+if ABS_MCP=$(get_abs_mcp_path); then
+  pass "Computed abs path: $ABS_MCP"
+else
+  ABS_MCP="mcp_server.py"
+  warn "Could not compute absolute path with python; using fallback token: $ABS_MCP"
+fi
 
 if [ -f "config/oh-my-opencode.json.example" ]; then
   if grep -q "mcp_server.py" config/oh-my-opencode.json.example; then

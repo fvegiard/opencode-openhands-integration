@@ -123,5 +123,5 @@ bash scripts/validate_mcps.sh --verbose --strict
 
 ## 9) Landing Notes
 
-- Mainline implementation landed in commit `6613022`.
+- Mainline implementation landed as the initial MCP enablement integration drop.
 - Follow-up robustness/doc completion is expected to preserve this plan and matrix exactly.
