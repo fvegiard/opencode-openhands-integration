@@ -1,0 +1,21 @@
+{
+  "$schema": "https://opencode.ai/schemas/config.json",
+  "comment": "Example OpenCode configuration with Oh My OpenCode plugin",
+  "version": "1.0",
+  "plugins": [
+    "oh-my-opencode"
+  ],
+  "defaultModel": "anthropic/claude-sonnet-4-20250514",
+  "workspace": {
+    "autoSave": true,
+    "gitIntegration": true
+  },
+  "ui": {
+    "theme": "dark",
+    "fontSize": 14
+  },
+  "security": {
+    "requireApprovalForFileOperations": false,
+    "requireApprovalForNetworkAccess": true
+  }
+}

@@ -1,0 +1,101 @@
+{
+  "$schema": "https://oh-my-opencode.dev/schemas/config.json",
+  "comment": "Oh My OpenCode configuration with OpenHands MCP integration",
+  
+  "mcps": {
+    "openhands": {
+      "comment": "OpenHands MCP Server - Change path to your mcp_server.py location",
+      "command": "python",
+      "args": ["/absolute/path/to/opencode-openhands-integration/mcp_server.py"],
+      "transport": "stdio",
+      "env": {
+        "MCP_TRANSPORT": "stdio"
+      }
+    },
+    
+    "websearch": {
+      "comment": "Built-in web search MCP (Oh My OpenCode)",
+      "enabled": true
+    },
+    
+    "context7": {
+      "comment": "Context7 MCP for documentation search",
+      "enabled": true
+    },
+    
+    "grep_app": {
+      "comment": "grep.app MCP for code search across GitHub",
+      "enabled": true
+    }
+  },
+  
+  "agents": {
+    "sisyphus": {
+      "comment": "Main orchestrator agent with OpenHands integration",
+      "model": "anthropic/claude-opus-4.5-high",
+      "system_prompt_additions": [
+        "You are Sisyphus, the main orchestrator agent for Oh My OpenCode.",
+        "When facing multi-file refactoring, complex debugging, or deep codebase research tasks,",
+        "use the @openhands MCP to delegate to OpenHands agent.",
+        "",
+        "OpenHands MCP Usage Examples:",
+        "- @openhands execute_task: Refactor authentication system to use JWT",
+        "- @openhands debug_issue: Getting NullPointerException in UserService",
+        "- @openhands research_codebase: How does the payment flow work?",
+        "- @openhands analyze_code: src/security/auth.py",
+        "",
+        "OpenHands excels at SWE-Bench-style tasks (77.6% benchmark) and autonomous code execution.",
+        "Delegate complex tasks that require multiple file changes or deep analysis."
+      ],
+      "max_iterations": 50,
+      "tools": ["all"]
+    },
+    
+    "oracle": {
+      "comment": "Architecture and decision-making agent",
+      "model": "openai/gpt-5.2",
+      "system_prompt_additions": [
+        "You are Oracle, the architecture and decision-making specialist.",
+        "Provide high-level guidance, design patterns, and strategic technical decisions.",
+        "When implementation details are needed, recommend delegating to Sisyphus or OpenHands."
+      ]
+    },
+    
+    "librarian": {
+      "comment": "Research and documentation agent",
+      "model": "anthropic/claude-sonnet-4-20250514",
+      "system_prompt_additions": [
+        "You are Librarian, the research and documentation specialist.",
+        "Use context7 and websearch MCPs for external documentation.",
+        "Use @openhands research_codebase for internal codebase analysis."
+      ]
+    },
+    
+    "explore": {
+      "comment": "Codebase exploration agent",
+      "model": "google/gemini-3-pro",
+      "system_prompt_additions": [
+        "You are Explore, the codebase navigation specialist.",
+        "Use grep.app for GitHub code search.",
+        "Use @openhands research_codebase for detailed flow tracing."
+      ]
+    }
+  },
+  
+  "experimental": {
+    "ultrawork_default": true,
+    "parallel_agents": 3,
+    "async_background_agents": true
+  },
+  
+  "logging": {
+    "level": "info",
+    "logToFile": true,
+    "logPath": "~/.config/opencode/logs"
+  },
+  
+  "performance": {
+    "max_tokens_per_request": 100000,
+    "timeout_seconds": 300
+  }
+}
