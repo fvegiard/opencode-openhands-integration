@@ -1,0 +1,136 @@
+#!/bin/bash
+#
+# Test script for OpenCode-OpenHands integration
+# Runs basic tests to verify the setup
+#
+
+set -e
+
+GREEN='\033[0;32m'
+RED='\033[0;31m'
+NC='\033[0m'
+
+echo "🧪 Testing OpenCode-OpenHands Integration"
+echo ""
+
+# Test 1: Python version
+echo -n "Test 1: Python version... "
+PYTHON_VERSION=$(python3 --version 2>&1 | cut -d' ' -f2 | cut -d'.' -f1,2)
+PYTHON_MAJOR=$(echo $PYTHON_VERSION | cut -d'.' -f1)
+PYTHON_MINOR=$(echo $PYTHON_VERSION | cut -d'.' -f2)
+
+if [ "$PYTHON_MAJOR" -ge 3 ] && [ "$PYTHON_MINOR" -ge 12 ]; then
+    echo -e "${GREEN}✓${NC} Python $PYTHON_VERSION"
+else
+    echo -e "${RED}✗${NC} Python 3.12+ required (found $PYTHON_VERSION)"
+    exit 1
+fi
+
+# Test 2: Virtual environment
+echo -n "Test 2: Virtual environment... "
+if [ -d ".venv" ]; then
+    echo -e "${GREEN}✓${NC} .venv exists"
+else
+    echo -e "${RED}✗${NC} .venv not found. Run: uv venv"
+    exit 1
+fi
+
+# Test 3: Dependencies
+echo -n "Test 3: Python dependencies... "
+source .venv/bin/activate
+if python -c "import fastmcp" 2>/dev/null; then
+    echo -e "${GREEN}✓${NC} FastMCP installed"
+else
+    echo -e "${RED}✗${NC} FastMCP not found. Run: uv pip install -r requirements.txt"
+    exit 1
+fi
+
+# Test 4: MCP server syntax
+echo -n "Test 4: MCP server syntax... "
+if python -m py_compile mcp_server.py 2>/dev/null; then
+    echo -e "${GREEN}✓${NC} No syntax errors"
+else
+    echo -e "${RED}✗${NC} Syntax errors in mcp_server.py"
+    exit 1
+fi
+
+# Test 5: MCP server imports
+echo -n "Test 5: MCP server imports... "
+if python -c "from mcp_server import health_check" 2>/dev/null; then
+    echo -e "${GREEN}✓${NC} Imports successful"
+else
+    echo -e "${RED}✗${NC} Import errors"
+    exit 1
+fi
+
+# Test 6: Health check function
+echo -n "Test 6: Health check function... "
+HEALTH_OUTPUT=$(python -c "from mcp_server import health_check; print(health_check())")
+if [[ $HEALTH_OUTPUT == *"OpenHands MCP Server is running"* ]]; then
+    echo -e "${GREEN}✓${NC} $HEALTH_OUTPUT"
+else
+    echo -e "${RED}✗${NC} Health check failed"
+    exit 1
+fi
+
+# Test 7: Configuration files
+echo -n "Test 7: Configuration templates... "
+if [ -f "config/oh-my-opencode.json.example" ] && [ -f "config/opencode.json.example" ]; then
+    echo -e "${GREEN}✓${NC} Templates exist"
+else
+    echo -e "${RED}✗${NC} Configuration templates missing"
+    exit 1
+fi
+
+# Test 8: JSON syntax
+echo -n "Test 8: JSON syntax... "
+if command -v jq >/dev/null 2>&1; then
+    if cat config/oh-my-opencode.json.example | jq . >/dev/null 2>&1; then
+        echo -e "${GREEN}✓${NC} Valid JSON"
+    else
+        echo -e "${RED}✗${NC} Invalid JSON in oh-my-opencode.json.example"
+        exit 1
+    fi
+else
+    echo -e "${GREEN}⊘${NC} jq not installed (skipped)"
+fi
+
+# Test 9: Setup script
+echo -n "Test 9: Setup script executable... "
+if [ -x "setup.sh" ]; then
+    echo -e "${GREEN}✓${NC} setup.sh is executable"
+else
+    echo -e "${RED}✗${NC} setup.sh not executable. Run: chmod +x setup.sh"
+    exit 1
+fi
+
+# Test 10: Documentation
+echo -n "Test 10: Documentation files... "
+REQUIRED_DOCS=("README.md" "docs/ARCHITECTURE.md" "docs/EXAMPLES.md" "docs/TROUBLESHOOTING.md")
+ALL_EXIST=true
+for doc in "${REQUIRED_DOCS[@]}"; do
+    if [ ! -f "$doc" ]; then
+        ALL_EXIST=false
+        break
+    fi
+done
+
+if $ALL_EXIST; then
+    echo -e "${GREEN}✓${NC} All documentation present"
+else
+    echo -e "${RED}✗${NC} Some documentation missing"
+    exit 1
+fi
+
+echo ""
+echo -e "${GREEN}═══════════════════════════════════════════${NC}"
+echo -e "${GREEN}✓ All tests passed!${NC}"
+echo -e "${GREEN}═══════════════════════════════════════════${NC}"
+echo ""
+echo "Next steps:"
+echo "1. Set API keys: export ANTHROPIC_API_KEY='...'"
+echo "2. Start server: python mcp_server.py"
+echo "3. Test in OpenCode: @openhands health_check"
+echo ""
+
+deactivate 2>/dev/null || true
