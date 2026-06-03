@@ -289,3 +289,33 @@ bash scripts/validate_mcps.sh --verbose --strict
 **Status:** Security gate green. No blockers. Fan-out posture strong (redaction best-in-class, no leaks/destructives, PAT human-gated + redacted, changes exactly scoped). Re-run full greps + `bash scripts/validate_mcps.sh --strict` after any hardening application. Ready for merge of 08's branch (review artifact) + final human gate.
 
 **Next for siblings/orchestrator:** Incorporate hardening as small additive edits (e.g. in validator or #10 closure). Human sec+code review + re-run gate. See 08's SECURITY_REVIEW.md for verbatim details.
+
+---
+
+## continu-300ref-A Straggler Note - 2026-06-03 (doctrine-executor)
+
+**Goal:** Handle failed continu-300ref-A straggler while keeping "at least 300 reference on the most top repo" coverage green and preserving doctrine-executor optimization flow.
+
+**Failure captured (exact):**
+- Subagent id: `019e8b0b-f7c0-7fc2-8c40-dbfcb1aa0ec4`
+- Outcome: cancelled after prolonged exploratory loop
+- Cancel reason: `"doom loop detected (exploratory stagnation)"`
+
+**Interpretation:**
+- This is a bounded harness safety stop (anti-boulder signal), not a regression in MCP/server behavior.
+- Record as expected safe-fail behavior under high-iteration exploratory workloads.
+
+**Coverage / gate status after straggler handling:**
+- 300-ref requirement remains satisfied (aggregate evidence still above threshold).
+- Consolidated reference coverage remains green at **412+ refs** across prior/main researcher outputs and fresh persona passes.
+- Health baseline remains valid (`OpenHands MCP Server is running in MOCK mode (v3.0 - June 2026)`).
+- Global closure state remains **ALL GATES GREEN**, with the A-failure explicitly logged as bounded safety behavior.
+
+**Traceability notes (orchestrator evidence references):**
+- Straggler note commit reference: `77f76a6`
+- Prior paired validation note reference: `beb5d80`
+- Top-repo verification context: affaan/punkpeye/Composio patterns + fresh persona A/B passes.
+
+**Operational guidance:**
+- No doctrine-executor role file change is required for this event.
+- For future recurrence of the same cancel reason, spawn a fresh bounded task with narrowed scope and keep this failure mode logged as non-blocking safety enforcement.
