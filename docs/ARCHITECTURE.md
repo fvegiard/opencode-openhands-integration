@@ -88,6 +88,30 @@ This integration creates a multi-agent workflow where:
 - Decomposable tasks → Multiple OpenHands agents in parallel
 - Examples: Bulk fixes, large-scale refactoring
 
+### Orchestrator Improvement Patterns (2026)
+
+Derived from >300 refs across top 2026 skill/agent repos. Full details in [`docs/ORCHESTRATOR_PATTERNS.md`](ORCHESTRATOR_PATTERNS.md).
+
+**Improvement Pattern 1: "Use when" in Agent Descriptions**
+- Source: anthropics/skills — `skills/skill-creator/SKILL.md` (verbatim: *"Use when users want to create a skill from scratch..."*)
+- Applied: each agent in `config/oh-my-opencode.json.example` now has an explicit `"Use when:"` block
+- Benefit: orchestrator routing accuracy ↑; fewer mis-delegations across 4 personas
+
+**Improvement Pattern 2: Persona I/O Contracts (Progressive Disclosure)**
+- Source: ComposioHQ/awesome-claude-skills (63k ★), travisvn/awesome-claude-skills (13.1k ★) — three-level loading: Metadata → SKILL.md body → Bundled resources
+- Applied: `[[inputs]]` / `[[outputs]]` contracts declared per agent; orchestrator pre-validates before dispatch
+- Three levels:
+  1. **Metadata** (name + "Use when") → routing decision (~100 words, always in context)
+  2. **Body** (`[[inputs]]` list) → pre-flight validation (<500 lines)
+  3. **Resources** (output schema) → result normalisation (unlimited, loaded as needed)
+
+**Improvement Pattern 3: MCP Wiring for GitHub (search_tool → use_tool)**
+- Source: hesreallyhim/awesome-claude-code (45.5k ★), rohitg00/awesome-claude-code-toolkit (135 agents, 15 MCP configs)
+- Applied: `mcps.github` block added to `config/oh-my-opencode.json.example`; Sisyphus system_prompt updated with two-step sequence:
+  1. `search_tool` — locate issue/PR/task (always first, never skip)
+  2. `use_tool copilot-cloud-agent__create_task` with `create_pr=true`
+- Benefit: full GitHub automation loop (open PRs, comment issues, trigger CI)
+
 ### Security Considerations
 
 1. **API Keys:** Stored in environment variables, never committed
