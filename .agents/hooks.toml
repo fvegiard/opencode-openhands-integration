@@ -1,0 +1,39 @@
+# .agents/hooks.toml — doctrine-executor hook configuration
+# Executed by the agent harness before/after each turn.
+# Source: affaan-m/ECC pattern + doctrine-executor role (June 2026)
+# continu_id = "continu-300ref-B"
+
+[pre_turn]
+check_plan_exists    = true   # abort if no live checklist present in session
+search_before_create = true   # enforce: copilot search → create_task order
+min_agents_check     = true   # warn if active agents < min_agents threshold
+ref_count_gate       = false  # gate (high_impact only); checked at post_turn
+
+[post_turn]
+auto_commit          = true
+commit_count_target  = 3
+commit_message_template = "feat: {verbatim_phrase} [{iter}/{commit_count_target}]"
+gate_check           = ["test.sh", "health_check", "claude mcp list"]
+update_todo          = true   # mark completed checklist items
+
+[anti_drift]
+peer_recognisable       = true   # "Would another agent recognise this output?" → must be Yes
+plan_complete_required  = true   # every session must close with PLAN COMPLETE block
+ref_count_min           = 300    # for high_impact tasks
+auto_commit_count_exact = 3
+
+[high_impact]
+min_agents   = 12
+ref_count    = 300
+persona      = "doctrine-executor"
+gate_check   = ["test.sh", "health_check", "grep persona=", "ref_count >= 300"]
+
+[personas]
+# Maps persona= values to their AGENTS.md definitions
+doctrine-executor = { file = ".agents/AGENTS.md", section = "doctrine-executor" }
+sisyphus          = { file = ".agents/AGENTS.md", section = "sisyphus" }
+oracle            = { file = ".agents/AGENTS.md", section = "oracle" }
+librarian         = { file = ".agents/AGENTS.md", section = "librarian" }
+explore           = { file = ".agents/AGENTS.md", section = "explore" }
+harness           = { file = ".agents/AGENTS.md", section = "harness" }
+enforcer          = { file = ".agents/AGENTS.md", section = "enforcer" }
