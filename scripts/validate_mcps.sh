@@ -40,14 +40,17 @@ cd "$REPO_ROOT"
 
 LOG="logs/mcp-validate-$(date -u +%Y%m%d-%H%M%S).log"
 mkdir -p logs
-# Tee with redaction for any accidental secrets (PATs, keys)
-# Guard against recursive calls (e.g. from test.sh invoking the validator)
+# Guard against bidirectional recursive calls:
+#   test.sh (Test 11) → validate_mcps.sh (section 5) → test.sh (Test 11) → ...
+# The guard breaks the cycle in both directions.
 if [ "${MCP_VALIDATOR_RUNNING:-}" = "1" ]; then
   echo "Skipping recursive validator call (already running)"
   exit 0
 fi
 export MCP_VALIDATOR_RUNNING=1
-# Write output to log (simple tee; no complex process-substitution to avoid hang)
+# Tee stdout+stderr to log. The original sed-based redaction pipeline was removed
+# because the extra process-substitution stage caused the script to hang when
+# invoked via another pipeline (e.g. test.sh's `| tee | tail | grep`).
 exec > >(tee -a "$LOG") 2>&1
 
 echo "🧪 MCP Validation for opencode-openhands-integration"
