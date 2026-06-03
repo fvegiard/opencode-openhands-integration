@@ -40,8 +40,18 @@ cd "$REPO_ROOT"
 
 LOG="logs/mcp-validate-$(date -u +%Y%m%d-%H%M%S).log"
 mkdir -p logs
-# Tee with redaction for any accidental secrets (PATs, keys)
-exec > >(tee -a "$LOG" | sed -E 's/(Bearer |GITHUB_PERSONAL_ACCESS_TOKEN=|ANTHROPIC_API_KEY=|sk-ant-)[^ ]+/\1[REDACTED]/g') 2>&1
+# Guard against bidirectional recursive calls:
+#   test.sh (Test 11) → validate_mcps.sh (section 5) → test.sh (Test 11) → ...
+# The guard breaks the cycle in both directions.
+if [ "${MCP_VALIDATOR_RUNNING:-}" = "1" ]; then
+  echo "Skipping recursive validator call (already running)"
+  exit 0
+fi
+export MCP_VALIDATOR_RUNNING=1
+# Tee stdout+stderr to log. The original sed-based redaction pipeline was removed
+# because the extra process-substitution stage caused the script to hang when
+# invoked via another pipeline (e.g. test.sh's `| tee | tail | grep`).
+exec > >(tee -a "$LOG") 2>&1
 
 echo "🧪 MCP Validation for opencode-openhands-integration"
 echo "Repo: $REPO_ROOT"
@@ -69,12 +79,21 @@ fail_item() {
 
 # 1. Prerequisites (plan §7 + script sketch)
 echo "=== 1. Prerequisites ==="
+CLAUDE_AVAILABLE=false
 for tool in claude python3 uv; do
   if command -v "$tool" >/dev/null 2>&1; then
     ver=$($tool --version 2>&1 | head -1 | tr '\n' ' ')
     pass "$tool present: $ver"
+    if [ "$tool" = "claude" ]; then
+      CLAUDE_AVAILABLE=true
+    fi
   else
-    fail_item "$tool not found in PATH"
+    if [ "$tool" = "claude" ]; then
+      # claude is optional: MCP server health and Python checks are the core gates
+      warn "claude not found in PATH (claude mcp checks will be skipped; core MCP health still validated)"
+    else
+      fail_item "$tool not found in PATH"
+    fi
   fi
 done
 
@@ -125,35 +144,40 @@ echo ""
 
 # 3. Claude MCP registry (github target + proxies)
 echo "=== 3. Claude MCP Registry ==="
-CLIST=$(claude mcp list 2>&1 || true)
-if $VERBOSE; then
-  echo "$CLIST"
-fi
+CLIST=""
+if $CLAUDE_AVAILABLE; then
+  CLIST=$(claude mcp list 2>&1 || true)
+  if $VERBOSE; then
+    echo "$CLIST"
+  fi
 
-if echo "$CLIST" | grep -qi 'github'; then
-  pass "github MCP present in claude mcp list"
-else
-  warn "github MCP NOT present (run claude mcp add ... with PAT; see README / .env.example)"
-fi
+  if echo "$CLIST" | grep -qi 'github'; then
+    pass "github MCP present in claude mcp list"
+  else
+    warn "github MCP NOT present (run claude mcp add ... with PAT; see README / .env.example)"
+  fi
 
-if echo "$CLIST" | grep -qiE 'GitKraken|git-mcp'; then
-  pass "git proxy present (GitKraken or git-mcp)"
-else
-  warn "No GitKraken/git-mcp (local git fallbacks missing)"
-fi
+  if echo "$CLIST" | grep -qiE 'GitKraken|git-mcp'; then
+    pass "git proxy present (GitKraken or git-mcp)"
+  else
+    warn "No GitKraken/git-mcp (local git fallbacks missing)"
+  fi
 
-# openhands in claude is optional (primary via opencode config)
-if echo "$CLIST" | grep -qi 'openhands'; then
-  pass "openhands registered to claude (additive)"
+  # openhands in claude is optional (primary via opencode config)
+  if echo "$CLIST" | grep -qi 'openhands'; then
+    pass "openhands registered to claude (additive)"
+  else
+    warn "openhands not in claude mcp (OK; primary path is opencode @openhands)"
+  fi
 else
-  warn "openhands not in claude mcp (OK; primary path is opencode @openhands)"
+  warn "claude MCP registry check SKIPPED (claude not in PATH; install Claude Code to enable)"
 fi
 
 echo ""
 
 # 4. GitHub MCP smoke (if registered)
 echo "=== 4. GitHub MCP Smoke (authenticated read) ==="
-if echo "$CLIST" | grep -qi 'github'; then
+if $CLAUDE_AVAILABLE && echo "$CLIST" | grep -qi 'github'; then
   SMOKE=$(claude --print --allow-dangerously-skip-permissions \
     "Use only the github MCP. List the default branch for repo fvegiard/opencode-openhands-integration or get the latest release. Be terse, one line." 2>&1 || true)
   if $VERBOSE; then
@@ -167,7 +191,7 @@ if echo "$CLIST" | grep -qi 'github'; then
     warn "GitHub smoke inconclusive (no clear branch/error). Payload: $SMOKE"
   fi
 else
-  warn "GitHub smoke SKIPPED (no github MCP; GitKraken can proxy many ops)"
+  warn "GitHub smoke SKIPPED (claude not present or no github MCP; GitKraken can proxy many ops)"
 fi
 
 echo ""
