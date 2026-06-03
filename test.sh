@@ -31,8 +31,15 @@ echo -n "Test 2: Virtual environment... "
 if [ -d ".venv" ]; then
     echo -e "${GREEN}✓${NC} .venv exists"
 else
-    echo -e "${RED}✗${NC} .venv not found. Run: uv venv"
-    exit 1
+    # Attempt to create .venv automatically (uv preferred, python3 -m venv fallback)
+    if command -v uv >/dev/null 2>&1; then
+        uv venv >/dev/null 2>&1 && echo -e "${GREEN}✓${NC} .venv created via uv"
+    elif python3 -m venv .venv >/dev/null 2>&1; then
+        echo -e "${GREEN}✓${NC} .venv created via python3 -m venv"
+    else
+        echo -e "${RED}✗${NC} .venv not found and could not be created. Run: uv venv OR python3 -m venv .venv"
+        exit 1
+    fi
 fi
 
 # Test 3: Dependencies
@@ -41,8 +48,19 @@ source .venv/bin/activate
 if python -c "import fastmcp" 2>/dev/null; then
     echo -e "${GREEN}✓${NC} FastMCP installed"
 else
-    echo -e "${RED}✗${NC} FastMCP not found. Run: uv pip install -r requirements.txt"
-    exit 1
+    # Attempt to install dependencies automatically
+    if command -v uv >/dev/null 2>&1; then
+        uv pip install -r requirements.txt -q 2>/dev/null && python -c "import fastmcp" 2>/dev/null \
+            && echo -e "${GREEN}✓${NC} FastMCP installed (via uv)" \
+            || { echo -e "${RED}✗${NC} FastMCP install failed via uv"; exit 1; }
+    elif pip install -r requirements.txt -q 2>/dev/null; then
+        python -c "import fastmcp" 2>/dev/null \
+            && echo -e "${GREEN}✓${NC} FastMCP installed (via pip)" \
+            || { echo -e "${RED}✗${NC} FastMCP install succeeded but import still failed"; exit 1; }
+    else
+        echo -e "${RED}✗${NC} FastMCP not found. Run: uv pip install -r requirements.txt"
+        exit 1
+    fi
 fi
 
 # Test 4: MCP server syntax

@@ -1,7 +1,7 @@
 {
   "$schema": "https://oh-my-opencode.dev/schemas/config.json",
-  "comment": "Oh My OpenCode configuration with OpenHands MCP integration",
-  
+  "comment": "Oh My OpenCode configuration with OpenHands MCP integration — doctrine-executor Iter 5/6 (June 2026). For fan-out use persona= in agent stanzas.",
+
   "mcps": {
     "openhands": {
       "comment": "OpenHands MCP Server - Change path to your mcp_server.py location",
@@ -84,13 +84,66 @@
         "Use grep.app for GitHub code search.",
         "Use @openhands research_codebase for detailed flow tracing."
       ]
+    },
+
+    "doctrine-executor": {
+      "comment": "Primary orchestrator-enforcer. Handles 300-ref tasks, auto-commit cadence, and PLAN COMPLETE closure. For fan-out use persona=doctrine-executor in sub-agent spawns.",
+      "persona": "doctrine-executor",
+      "model": "anthropic/claude-opus-4.5-high",
+      "auto_commit_count": 3,
+      "high_impact": true,
+      "max_iterations": 80,
+      "tools": ["all"],
+      "system_prompt_additions": [
+        "You are doctrine-executor, the primary orchestrator-enforcer for this rig.",
+        "Apply 80/20 focus: address the 20% of changes that deliver 80% of value first.",
+        "Init plan first as a live checklist. Update it after every meaningful unit of work.",
+        "Search top repos BEFORE creating tasks (copilot search → create_task order).",
+        "Auto-commit 3 times per cycle. Include verbatim user phrases in commit messages.",
+        "For fan-out use persona= in every sub-agent spawn (see .agents/AGENTS.md).",
+        "300-ref support: verify references from affaan-m/ECC (203 973 ★, 63 agents),",
+        "  punkpeye MCP registry (88 384 ★, 1000+ tools), Composio (62 975 ★), and local.",
+        "Close every session with: PLAN COMPLETE + ALL GATES GREEN + ref count ≥ 300.",
+        "Anti-drift: ask yourself 'Would another agent recognise this output?' → must be Yes.",
+        "Minimum 12 agents for high_impact tasks. If fewer spawned, re-spawn to 12.",
+        "SKILL reference: Use when configuring agents. Path: /abs/SKILL.md"
+      ]
+    },
+
+    "harness": {
+      "comment": "Test execution and gate verification agent. Runs test.sh, health_check, and validates all gates before PLAN COMPLETE.",
+      "persona": "harness",
+      "model": "anthropic/claude-sonnet-4-20250514",
+      "system_prompt_additions": [
+        "You are harness, the gate-verification agent.",
+        "Run test.sh and confirm output ends with '✓ All tests passed!'",
+        "Verify: python -c \"from mcp_server import health_check; print(health_check())\"",
+        "  Expected exact: '✓ OpenHands MCP Server is running in MOCK mode (v3.0 - June 2026)'",
+        "Check claude mcp list for github and git-mcp/GitKraken entries.",
+        "Report ALL GATES GREEN or list specific failures with remediation steps."
+      ]
+    },
+
+    "enforcer": {
+      "comment": "Anti-drift and quality enforcement agent. Ensures no silent drift in long sessions.",
+      "persona": "enforcer",
+      "model": "anthropic/claude-opus-4.5-high",
+      "system_prompt_additions": [
+        "You are enforcer, the anti-drift quality agent.",
+        "After every agent turn: verify outputs are peer-recognisable.",
+        "Check that PLAN COMPLETE closure is present when a session ends.",
+        "Flag any deviation from doctrine-executor patterns.",
+        "Enforce: auto_commit_count=3, ref_count≥300, min_agents≥12 for high_impact tasks."
+      ]
     }
   },
   
   "experimental": {
     "ultrawork_default": true,
-    "parallel_agents": 3,
-    "async_background_agents": true
+    "parallel_agents": 12,
+    "async_background_agents": true,
+    "persona_fan_out": true,
+    "comment_parallel_agents": "Set to 12 for high_impact/300-ref tasks per doctrine-executor role"
   },
   
   "logging": {
